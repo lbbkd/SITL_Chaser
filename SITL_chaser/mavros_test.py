@@ -7,6 +7,7 @@ from mavros_msgs.msg import State
 from geometry_msgs.msg import PoseStamped
 from std_msgs.msg import Header
 import time
+from pymavlink import mavutil
 
 class Controller(Node):
     def __init__(self):
@@ -14,9 +15,9 @@ class Controller(Node):
         self.current_state = State()
         self.current_pose = PoseStamped()
         self.create_subscription(
-            'mavros/state', State, self.state_cb, 10)
+            State,'mavros/state',  self.state_cb, 10)
         self.create_subscription(
-            'mavros/local_position/pose', PoseStamped, self.pose_cb, 10)
+            PoseStamped,'mavros/local_position/pose',  self.pose_cb, 10)
     
     def state_cb(self,state:State):
         self.current_state = state
@@ -30,6 +31,9 @@ class Controller(Node):
 
 
 def main(args=None):
+    master = mavutil.mavlink_connection('udp:127.0.0.1:14570')
+
+    master.wait_heartbeat()
     rclpy.init(args=args)
     quad = Controller()
     rclpy.spin(quad)

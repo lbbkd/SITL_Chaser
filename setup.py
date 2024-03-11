@@ -20,6 +20,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
+            "mavros_test = SITL_chaser.mavros_test:main"
         ],
     },
 )
