@@ -1,21 +1,17 @@
-#!/usr/bin/env python3
+import numpy as np
 import rclpy
 import mavros
 from mavros.system import STATE_QOS
 from mavros.base import SENSOR_QOS
-from nav_msgs.msg import Odometry
 from rclpy.node import Node
-from mavros_msgs.srv import CommandBool, SetMode
-from mavros_msgs.srv import CommandTOL
-from mavros_msgs.msg import State
-from geometry_msgs.msg import PoseStamped
-from std_msgs.msg import Header
 import time
 from pymavlink import mavutil
+from mavros_msgs.msg import State
+from to_euler import euler_from_quaternion
 
-class Controller(Node):
+class Chaser(Node):
     def __init__(self):
-        super().__init__("quad_controller")
+        super().__init__("quad_chaser")
         # self.current_state = State()
         # self.current_pose = PoseStamped()
         
@@ -36,28 +32,20 @@ class Controller(Node):
         
     def pose_cb(self,odom):
         self.current_pose = odom        
-        self.current_pose = odom.pose.pose.position.x
-            
-
-
-def main(args=None):
-    rclpy.init(args=args) 
-    master = mavutil.mavlink_connection('udp:127.0.0.1:14550')
-
-    master.wait_heartbeat()
-    print('heartbeat recieved')
-    
-    quad = Controller()
-    rclpy.spin_once(quad, timeout_sec=0.01)  
-    
-    while rclpy.ok():        
-        print(quad.current_pose)
-        #print(quad.current_pose)
+        self.current_x = odom.pose.pose.position.x
+        self.current_y = odom.pose.pose.position.y
+        self.current_z = odom.pose.pose.position.z
         
-    # rclpy.spin(quad)
+        qx = odom.pose.pose.orientation.x
+        qy = odom.pose.pose.orientation.y
+        qz = odom.pose.pose.orientation.z
+        qw = odom.pose.pose.orientation.w
+        self.roll,self.pitch,self.yaw = euler_from_quaternion(qx,qy,qz,qw)
         
-    # rclpy.shutdown()
-
-
-if __name__ =='__main__':
-    main()
+    
+    def simple_pronav(self,heading,dt,nav_gain):
+        d_los = (heading - previous_heading)/dt
+        previous_heading = heading
+        angular_vel = nav_gain*d_los
+        return angular_vel
+    
