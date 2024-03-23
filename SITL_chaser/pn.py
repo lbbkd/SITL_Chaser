@@ -8,6 +8,7 @@ import time
 from pymavlink import mavutil
 from mavros_msgs.msg import State
 from to_euler import euler_from_quaternion
+from pymavlink.quaternion import QuaternionBase
 
 class Chaser(Node):
     def __init__(self):
@@ -46,16 +47,33 @@ class Chaser(Node):
     def simple_pronav(self,heading,dt,nav_gain):
         d_los = (heading - previous_heading)/dt
         previous_heading = heading
-        angular_vel = nav_gain*d_los
-        return angular_vel
+        yaw_rate = nav_gain*d_los
+        return yaw_rate
+    
+    def set_target_attitude(self, yaw_rate, master, control_yaw=True):
+        bitmask = (1<<6 | 1<<3)  if control_yaw else 1<<6
+
+        master.mav.set_attitude_target_send(
+            0,     
+            0, 0,   
+            bitmask,
+            QuaternionBase([0, 0, 0]), # -> attitude quaternion (w, x, y, z | zero-rotation is 1, 0, 0, 0)
+            0, #roll rate
+            0, #pitch rate
+            yaw_rate, 0)    # yaw rate, thrust 
 def main(args=None):
+    time_now = time.time()
     rclpy.init(args= args)
     master = mavutil.mavlink_connection('udp:127.0.0.1:14550')
 
     master.wait_heartbeat()
-    print('heartbeat recieved')
-    quad = Chaser()
-    rclpy.spin(quad)
+    while rclpy.ok():
+        print('heartbeat recieved')
+        quad = Chaser()
+        yaw_rate = quad.simple_pronav(given,time.time() - time_now,2)
+        quad.set_target_attitude(yaw_rate, master, True)
+        time_now = time.time()
+    #rclpy.spin(quad)
         
 if __name__ == '__main__':
     main()
