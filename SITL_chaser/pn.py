@@ -48,4 +48,15 @@ class Chaser(Node):
         previous_heading = heading
         angular_vel = nav_gain*d_los
         return angular_vel
+def main(args=None):
+    rclpy.init(args= args)
+    master = mavutil.mavlink_connection('udp:127.0.0.1:14550')
+
+    master.wait_heartbeat()
+    print('heartbeat recieved')
+    quad = Chaser()
+    rclpy.spin(quad)
+        
+if __name__ == '__main__':
+    main()
     
